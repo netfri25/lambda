@@ -54,15 +54,11 @@ impl<'a> Lexer<'a> {
     }
 
     fn lex_ident(&self) -> Option<Token<'a>> {
-        let mut chars = self.text.chars();
-        if chars.next().is_none_or(|c| !c.is_alphabetic() && c != '_') {
-            return None;
-        }
-
-        let len = chars
+        let len = self
+            .text
+            .chars()
             .take_while(|c| c.is_alphanumeric() || *c == '_')
             .count();
-        let len = 1 + len; // because of the first character
 
         let start = self.loc;
         let end = self.loc.add_col(len.try_into().unwrap());
