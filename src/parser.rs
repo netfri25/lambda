@@ -1,9 +1,23 @@
 use crate::ast::{Call, Expr, Lambda, Var};
 use crate::token::{Token, TokenKind};
 
+pub type Result<T> = ::std::result::Result<T, Error>;
+
 pub struct Parser<'a, I> {
     iter: I,
     peek: Token<'a>,
+}
+
+#[derive(Debug, Clone, thiserror::Error)]
+pub enum Error {
+    #[error("expected {expected} but got {actual}")]
+    Unexpected {
+        expected: TokenKind,
+        actual: TokenKind,
+    },
+
+    #[error("invalid expression")]
+    InvalidExpr,
 }
 
 impl<'a, I> Parser<'a, I>
@@ -12,13 +26,11 @@ where
 {
     pub fn new(iter: impl IntoIterator<IntoIter = I>) -> Self {
         let mut iter = iter.into_iter();
-        let peek = iter
-            .next()
-            .unwrap_or_else(|| Token::new("", TokenKind::Eof));
+        let peek = iter.next().unwrap_or_default();
         Self { iter, peek }
     }
 
-    pub fn parse_expr(&mut self) -> Option<Expr> {
+    pub fn parse_expr(&mut self) -> Result<Expr> {
         let mut expr = None;
         while !is_terminal(self.peek().kind()) {
             let next_expr = match self.peek().kind() {
@@ -35,42 +47,42 @@ where
             }
         }
 
-        expr
+        expr.ok_or(Error::InvalidExpr)
     }
 
-    fn parse_lambda(&mut self) -> Option<Lambda> {
+    fn parse_lambda(&mut self) -> Result<Lambda> {
         self.expect(TokenKind::Backslash)?;
         let param = self.parse_var()?;
         self.expect(TokenKind::Dot)?;
         let body = self.parse_expr()?;
-        Some(Lambda::new(param, body))
+        Ok(Lambda::new(param, body))
     }
 
-    fn parse_closed(&mut self) -> Option<Expr> {
+    fn parse_closed(&mut self) -> Result<Expr> {
         self.expect(TokenKind::LParen)?;
         let inner = self.parse_expr()?;
         self.expect(TokenKind::RParen)?;
-        Some(inner)
+        Ok(inner)
     }
 
-    fn parse_var(&mut self) -> Option<Var> {
+    fn parse_var(&mut self) -> Result<Var> {
         let name = self.expect(TokenKind::Ident)?;
-        Some(Var::new(name.text()))
+        Ok(Var::new(name.text()))
     }
 
-    fn expect(&mut self, kind: TokenKind) -> Option<Token<'a>> {
+    fn expect(&mut self, kind: TokenKind) -> Result<Token<'a>> {
         if self.peek.kind() == kind {
-            Some(self.next_token())
+            Ok(self.next_token())
         } else {
-            None
+            Err(Error::Unexpected {
+                expected: kind,
+                actual: self.peek.kind(),
+            })
         }
     }
 
     fn next_token(&mut self) -> Token<'a> {
-        let after = self
-            .iter
-            .next()
-            .unwrap_or_else(|| Token::new("", TokenKind::Eof));
+        let after = self.iter.next().unwrap_or_default();
         std::mem::replace(&mut self.peek, after)
     }
 

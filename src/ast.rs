@@ -1,4 +1,3 @@
-use std::rc::Rc;
 use std::fmt;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -26,86 +25,58 @@ impl fmt::Display for Expr {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Call {
-    func: Rc<Expr>,
-    arg: Rc<Expr>,
+    pub func: Box<Expr>,
+    pub arg: Box<Expr>,
 }
 
 impl Call {
     pub fn new(func: Expr, arg: Expr) -> Self {
-        let func = Rc::new(func);
-        let arg = Rc::new(arg);
+        let func = Box::new(func);
+        let arg = Box::new(arg);
         Self { func, arg }
-    }
-
-    pub fn func(&self) -> &Expr {
-        &self.func
-    }
-
-    pub fn func_mut(&mut self) -> &mut Rc<Expr> {
-        &mut self.func
-    }
-
-    pub fn arg(&self) -> &Rc<Expr> {
-        &self.arg
-    }
-
-    pub fn arg_mut(&mut self) -> &mut Rc<Expr> {
-        &mut self.arg
     }
 }
 
 impl fmt::Display for Call {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if self.func().is_var() {
-            write!(f, "{} ", self.func())?
+        if self.func.is_var() {
+            write!(f, "{} ", self.func)?
         } else {
-            write!(f, "({}) ", self.func())?
+            write!(f, "({}) ", self.func)?
         }
 
-        if self.arg().is_var() {
-            write!(f, "{}", self.arg())
+        if self.arg.is_var() {
+            write!(f, "{}", self.arg)
         } else {
-            write!(f, "({})", self.arg())
+            write!(f, "({})", self.arg)
         }
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Lambda {
-    param: Var,
-    body: Rc<Expr>,
+    pub param: Var,
+    pub body: Box<Expr>,
 }
 
 impl Lambda {
     pub fn new(param: Var, body: Expr) -> Self {
-        let body = Rc::new(body);
+        let body = Box::new(body);
         Lambda { param, body }
-    }
-
-    pub fn param(&self) -> &Var {
-        &self.param
-    }
-
-    pub fn body(&self) -> &Expr {
-        &self.body
-    }
-
-    pub fn body_mut(&mut self) -> &mut Rc<Expr> {
-        &mut self.body
     }
 }
 
 impl fmt::Display for Lambda {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "\\{}. {}", self.param(), self.body())
+        write!(f, "\\{}. {}", self.param, self.body)
     }
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub struct Var(Rc<str>);
+pub struct Var(Box<str>);
 
 impl Var {
-    pub fn new(arg: impl Into<Rc<str>>) -> Self {
+    pub fn new(arg: impl Into<Box<str>>) -> Self {
         let arg = arg.into();
         Var(arg)
     }

@@ -1,7 +1,6 @@
 use std::collections::HashMap;
-use std::rc::Rc;
 
-use crate::ast::{Expr, Var};
+use crate::ast::{Call, Expr, Lambda, Var};
 
 #[derive(Debug, Clone)]
 pub struct Evaluator {
@@ -16,49 +15,37 @@ impl Default for Evaluator {
 }
 
 impl Evaluator {
-    pub fn eval_expr(&mut self, expr: &mut Rc<Expr>) {
-        match expr.as_ref() {
-            Expr::Var(_) => self.eval_var(expr),
-            Expr::Lambda(_) => self.eval_lambda(expr),
-            Expr::Call(_) => self.eval_call(expr),
+    pub fn eval_expr(&mut self, expr: Expr) -> Expr {
+        match expr {
+            Expr::Var(var) => self.eval_var(var),
+            Expr::Lambda(lambda) => self.eval_lambda(lambda),
+            Expr::Call(call) => self.eval_call(call),
         }
     }
 
-    fn eval_var(&mut self, expr: &mut Rc<Expr>) {
-        let Expr::Var(var) = expr.as_ref() else {
-            return;
-        };
-
-        if let Some(new_expr) = self.lookup(var) {
-            *expr = new_expr;
-        }
+    fn eval_var(&mut self, var: Var) -> Expr {
+        self.lookup(&var).cloned().unwrap_or(Expr::Var(var))
     }
 
-    fn eval_lambda(&mut self, expr: &mut Rc<Expr>) {
-        let Expr::Lambda(lambda) = Rc::make_mut(expr) else {
-            return;
-        };
-
-        self.eval_expr(lambda.body_mut())
+    fn eval_lambda(&mut self, mut lambda: Lambda) -> Expr {
+        *lambda.body = self.eval_expr(*lambda.body);
+        Expr::Lambda(lambda)
     }
 
-    fn eval_call(&mut self, expr: &mut Rc<Expr>) {
-        let Expr::Call(call) = Rc::make_mut(expr) else {
-            return;
-        };
+    fn eval_call(&mut self, mut call: Call) -> Expr {
+        *call.func = self.eval_expr(*call.func);
 
-        self.eval_expr(call.func_mut());
-        let arg = call.arg().clone();
-        if let Expr::Lambda(lambda) = Rc::make_mut(call.func_mut()) {
+        if let Expr::Lambda(lambda) = *call.func {
             self.push_scope();
-            self.define(lambda.param().clone(), arg);
+            self.define(lambda.param, *call.arg);
 
-            *expr = lambda.body_mut().clone();
-            self.eval_expr(expr);
+            let result = self.eval_expr(*lambda.body);
 
             self.pop_scope();
+            result
         } else {
-            self.eval_expr(call.arg_mut());
+            *call.arg = self.eval_expr(*call.arg);
+            Expr::Call(call)
         }
     }
 
@@ -70,20 +57,20 @@ impl Evaluator {
         self.stack.pop();
     }
 
-    fn define(&mut self, var: Var, expr: impl Into<Rc<Expr>>) {
+    fn define(&mut self, var: Var, expr: impl Into<Expr>) {
         let expr = expr.into();
         self.stack.last_mut().unwrap().vars.insert(var, expr);
     }
 
-    fn lookup(&self, var: &Var) -> Option<Rc<Expr>> {
+    fn lookup(&self, var: &Var) -> Option<&Expr> {
         self.stack
             .iter()
             .rev()
-            .find_map(|scope| scope.vars.get(var).cloned())
+            .find_map(|scope| scope.vars.get(var))
     }
 }
 
 #[derive(Debug, Clone, Default)]
 struct Scope {
-    pub vars: HashMap<Var, Rc<Expr>>,
+    pub vars: HashMap<Var, Expr>,
 }
