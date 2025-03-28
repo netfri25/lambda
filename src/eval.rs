@@ -1,17 +1,8 @@
-use std::collections::HashMap;
-
 use crate::ast::{Call, Expr, Lambda, Var};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Evaluator {
-    stack: Vec<Scope>,
-}
-
-impl Default for Evaluator {
-    fn default() -> Self {
-        let stack = vec![Scope::default()];
-        Self { stack }
-    }
+    stack: Vec<(Var, Expr)>,
 }
 
 impl Evaluator {
@@ -24,6 +15,7 @@ impl Evaluator {
     }
 
     fn eval_var(&mut self, var: Var) -> Expr {
+        // TOOD: this is slow, because `cloned` can clone a very big expression
         self.lookup(&var).cloned().unwrap_or(Expr::Var(var))
     }
 
@@ -36,11 +28,8 @@ impl Evaluator {
         *call.func = self.eval_expr(*call.func);
 
         if let Expr::Lambda(lambda) = *call.func {
-            self.push_scope();
-            self.define(lambda.param, *call.arg);
-
+            self.push_scope(lambda.param, *call.arg);
             let result = self.eval_expr(*lambda.body);
-
             self.pop_scope();
             result
         } else {
@@ -49,28 +38,18 @@ impl Evaluator {
         }
     }
 
-    fn push_scope(&mut self) {
-        self.stack.push(Scope::default())
+    fn push_scope(&mut self, name: Var, value: Expr) {
+        self.stack.push((name, value))
     }
 
     fn pop_scope(&mut self) {
         self.stack.pop();
     }
 
-    fn define(&mut self, var: Var, expr: impl Into<Expr>) {
-        let expr = expr.into();
-        self.stack.last_mut().unwrap().vars.insert(var, expr);
-    }
-
     fn lookup(&self, var: &Var) -> Option<&Expr> {
         self.stack
             .iter()
             .rev()
-            .find_map(|scope| scope.vars.get(var))
+            .find_map(|(name, expr)| (name == var).then_some(expr))
     }
-}
-
-#[derive(Debug, Clone, Default)]
-struct Scope {
-    pub vars: HashMap<Var, Expr>,
 }
