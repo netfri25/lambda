@@ -1,21 +1,13 @@
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct Token<'a> {
-    text: &'a str,
-    kind: TokenKind,
-    span: Span,
+    pub text: &'a str,
+    pub kind: TokenKind,
+    pub span: Span,
 }
 
 impl<'a> Token<'a> {
     pub fn new(text: &'a str, kind: TokenKind, span: Span) -> Self {
         Self { text, kind, span }
-    }
-
-    pub fn text(&self) -> &'a str {
-        self.text
-    }
-
-    pub fn kind(&self) -> TokenKind {
-        self.kind
     }
 }
 
@@ -59,11 +51,6 @@ impl Loc {
 
     pub fn add_col(mut self, amount: u16) -> Self {
         self.col += amount;
-        self
-    }
-
-    pub fn next_row(mut self) -> Self {
-        self.row += 1;
         self
     }
 }

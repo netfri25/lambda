@@ -32,8 +32,8 @@ where
 
     pub fn parse_expr(&mut self) -> Result<Expr> {
         let mut expr = None;
-        while !is_terminal(self.peek().kind()) {
-            let next_expr = match self.peek().kind() {
+        while !is_terminal(self.peek().kind) {
+            let next_expr = match self.peek().kind {
                 TokenKind::Backslash => self.parse_lambda().map(Expr::Lambda)?,
                 TokenKind::LParen => self.parse_closed()?,
                 TokenKind::Ident => self.parse_var().map(Expr::Var)?,
@@ -67,16 +67,16 @@ where
 
     fn parse_var(&mut self) -> Result<Var> {
         let name = self.expect(TokenKind::Ident)?;
-        Ok(Var::new(name.text()))
+        Ok(Var::new(name.text))
     }
 
     fn expect(&mut self, kind: TokenKind) -> Result<Token<'a>> {
-        if self.peek.kind() == kind {
+        if self.peek.kind == kind {
             Ok(self.next_token())
         } else {
             Err(Error::Unexpected {
                 expected: kind,
-                actual: self.peek.kind(),
+                actual: self.peek.kind,
             })
         }
     }
