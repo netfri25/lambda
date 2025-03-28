@@ -8,14 +8,33 @@ pub struct Lexer<'a> {
 impl<'a> Lexer<'a> {
     pub fn new(text: &'a str) -> Self {
         let loc = Loc::new(1, 1);
+        let text = text.trim_end();
         Self { text, loc }
     }
 
     pub fn next_token(&mut self) -> Token<'a> {
-        self.text = self.text.trim_start();
+        self.skip_whitespace();
         let tkn = self.lex_token();
-        self.text = &self.text[tkn.text().len()..];
+        self.text = &self.text[tkn.text.len()..];
+        self.loc = tkn.span.end;
         tkn
+    }
+
+    fn skip_whitespace(&mut self) {
+        let mut count = 0;
+
+        for c in self.text.chars().take_while(|c| c.is_whitespace()) {
+            count += 1;
+
+            if c == '\n' {
+                self.loc.row += 1;
+                self.loc.col = 1;
+            } else {
+                self.loc.col += 1;
+            }
+        }
+
+        self.text = self.text.get(count..).unwrap_or_default()
     }
 
     fn lex_token(&self) -> Token<'a> {
