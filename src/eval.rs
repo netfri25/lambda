@@ -51,10 +51,7 @@ impl Evaluator {
         let arg = call.arg().clone();
         if let Expr::Lambda(lambda) = Rc::make_mut(call.func_mut()) {
             self.push_scope();
-            self.define(
-                lambda.param().clone(),
-                arg,
-            );
+            self.define(lambda.param().clone(), arg);
 
             *expr = lambda.body_mut().clone();
             self.eval_expr(expr);
@@ -79,12 +76,14 @@ impl Evaluator {
     }
 
     fn lookup(&self, var: &Var) -> Option<Rc<Expr>> {
-        self.stack.last().unwrap().vars.get(var).cloned()
+        self.stack
+            .iter()
+            .rev()
+            .find_map(|scope| scope.vars.get(var).cloned())
     }
 }
 
 #[derive(Debug, Clone, Default)]
 struct Scope {
-    pub parent: Option<Box<Scope>>,
     pub vars: HashMap<Var, Rc<Expr>>,
 }
