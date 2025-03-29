@@ -1,3 +1,5 @@
+use std::io::Write;
+
 use eval::Evaluator;
 use lexer::Lexer;
 use parser::Parser;
@@ -31,14 +33,64 @@ fac = \n. \f. n (\f. \n. n (f (\f. \x. n f (f x)))) (\x. f) (\x. x);
 fac 2;
 "#;
     // let text = r#"(\f. \x. f (f (x x x))) (a b) (c d)"#;
-    let mut parser = Parser::new(Lexer::new(text));
-    let prog = parser.parse().unwrap();
-    for stmt in &prog {
-        println!("{}", stmt);
-    }
+    // let mut parser = Parser::new(Lexer::new(text));
+    // let prog = parser.parse().unwrap();
+    // for stmt in &prog {
+    //     println!("{}", stmt);
+    // }
 
-    let mut eval = Evaluator::default();
-    let Some(res) = eval.eval_stmts(prog) else { return };
-    println!("{}", res);
+    // let mut eval = Evaluator::default();
+    // let Some(res) = eval.eval_stmts(prog) else { return };
+    // println!("{}", res);
+    repl();
 }
 
+fn repl() {
+    let stdin = std::io::stdin();
+    let mut history = String::new();
+    let mut line = String::new();
+
+    loop {
+        print!("> ");
+        std::io::stdout().flush().ok();
+        line.clear();
+        stdin.read_line(&mut line).ok();
+
+        // remove trailing whitespace
+        while line.ends_with(char::is_whitespace) {
+            line.pop();
+        }
+
+        // exit on an empty line
+        if line.is_empty() {
+            break;
+        }
+
+        // append a semicolon if missing
+        if !line.ends_with(";") {
+            line.push(';');
+        }
+
+        let old_len = history.len();
+        history.reserve(line.len() + 1);
+        history.push('\n');
+        history.push_str(&line);
+
+        let lexer = Lexer::new(&history);
+        let mut parser = Parser::new(lexer);
+        let stmts = match parser.parse() {
+            Ok(parsed) => parsed,
+            Err(err) => {
+                eprintln!("PARSER ERROR: {}", err);
+                history.drain(old_len..);
+                continue;
+            }
+        };
+
+        let mut eval = Evaluator::default();
+        if let Some(res) = eval.eval_stmts(stmts) {
+            println!("=> {}", res);
+            println!()
+        }
+    }
+}
