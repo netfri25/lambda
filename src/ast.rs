@@ -1,6 +1,40 @@
 use std::fmt;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Stmt {
+    Decl(Decl),
+    Expr(Expr),
+}
+
+impl fmt::Display for Stmt {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Stmt::Decl(decl) => write!(f, "{};", decl),
+            Stmt::Expr(expr) => write!(f, "{};", expr),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Decl {
+    pub name: Var,
+    pub expr: Expr,
+}
+
+impl Decl {
+    pub fn new(name: Var, expr: Expr) -> Self {
+        Self { name, expr }
+    }
+}
+
+impl fmt::Display for Decl {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{} = {}", self.name, self.expr)
+    }
+}
+
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Expr {
     Var(Var),
     Lambda(Lambda),

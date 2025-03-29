@@ -76,6 +76,8 @@ impl<'a> Lexer<'a> {
             '.' => TokenKind::Dot,
             '(' => TokenKind::LParen,
             ')' => TokenKind::RParen,
+            ';' => TokenKind::Semicolon,
+            '=' => TokenKind::Equals,
             _ => return None,
         })
     }

@@ -18,6 +18,8 @@ pub enum TokenKind {
     Dot,
     LParen,
     RParen,
+    Semicolon,
+    Equals,
 
     #[default]
     Eof,
@@ -32,6 +34,8 @@ impl std::fmt::Display for TokenKind {
             TokenKind::Dot => write!(f, "dot"),
             TokenKind::LParen => write!(f, "left paren"),
             TokenKind::RParen => write!(f, "right paren"),
+            TokenKind::Semicolon => write!(f, "semicolon"),
+            TokenKind::Equals => write!(f, "equals"),
             TokenKind::Eof => write!(f, "end of file"),
             TokenKind::Illegal => write!(f, "illegal token"),
         }
