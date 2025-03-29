@@ -2,9 +2,25 @@ use std::collections::HashMap;
 
 use crate::ast::{Call, Decl, Expr, Lambda, Stmt, Var};
 
+slotmap::new_key_type! { struct NodeID; }
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum Node {
+    Var,
+    Lambda {
+        param: NodeID,
+        body: NodeID,
+    },
+    Call {
+        func: NodeID,
+        arg: NodeID,
+    },
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct Evaluator {
-    globals: HashMap<Var, Expr>,
+    nodes: slotmap::SlotMap<NodeID, Node>,
+    names: slotmap::SparseSecondaryMap<NodeID, Var>,
 }
 
 impl Evaluator {
@@ -16,68 +32,96 @@ impl Evaluator {
     }
 
     pub fn eval_stmt(&mut self, stmt: Stmt) -> Option<Expr> {
+        let is_expr = matches!(stmt, Stmt::Expr(_));
+        let node = self.stmt_to_node(stmt);
+        is_expr.then(|| self.node_to_expr(node))
+    }
+
+    fn stmt_to_node(&mut self, stmt: Stmt) -> NodeID {
+        let mut scope = HashMap::default();
         match stmt {
             Stmt::Decl(decl) => {
-                self.eval_decl(decl);
-                None
+                // let node = self.expr_to_node(decl.expr, &mut scope);
+                // self.globals.insert(decl.name, node);
+                // node
+                todo!("globals")
             }
-            Stmt::Expr(expr) => Some(self.eval_expr(expr)),
+            Stmt::Expr(expr) => self.expr_to_node(expr, &mut scope),
+        }
+    }
+
+    fn expr_to_node(&mut self, expr: Expr, scope: &mut HashMap<Var, Vec<NodeID>>) -> NodeID {
+        match expr {
+            Expr::Var(var) => {
+                if let Some(id) = scope.get(&var).and_then(|ids| ids.last()) {
+                    *id
+                } else {
+                    let id = self.nodes.insert(Node::Var);
+                    self.names.insert(id, var);
+                    id
+                }
+            }
+            Expr::Lambda(lambda) => {
+                // parameter variable node id
+                let param = self.nodes.insert(Node::Var);
+
+                scope.entry(lambda.param.clone())
+                    .or_default()
+                    .push(param);
+
+                let body = self.expr_to_node(*lambda.body, scope);
+
+                // pop the variable from the scope
+                let ids = scope.get_mut(&lambda.param).expect("entry must exist");
+                ids.pop();
+                if ids.is_empty() {
+                    scope.remove_entry(&lambda.param);
+                }
+
+                self.names.insert(param, lambda.param);
+                self.nodes.insert(Node::Lambda { param, body })
+            }
+            Expr::Call(call) => {
+                let func = self.expr_to_node(*call.func, scope);
+                let arg = self.expr_to_node(*call.arg, scope);
+                self.nodes.insert(Node::Call { func, arg })
+            }
+        }
+    }
+
+    fn node_to_expr(&self, id: NodeID) -> Expr {
+        match self.nodes[id] {
+            Node::Var => Expr::Var(self.names[id].clone()),
+            Node::Lambda { param, body } => {
+                let param_var = self.names[param].clone();
+                let body_expr = self.node_to_expr(body);
+                Expr::Lambda(Lambda::new(param_var, body_expr))
+            },
+            Node::Call { func, arg } => {
+                let func_expr = self.node_to_expr(func);
+                let arg_expr = self.node_to_expr(arg);
+                Expr::Call(Call::new(func_expr, arg_expr))
+            }
         }
     }
 
     fn eval_decl(&mut self, decl: Decl) {
-        // let expr = self.eval_expr(decl.expr);
-        self.globals.insert(decl.name, decl.expr);
+        todo!()
     }
 
     fn eval_expr(&mut self, expr: Expr) -> Expr {
-        match expr {
-            Expr::Var(var) => self.eval_var(var),
-            Expr::Lambda(lambda) => self.eval_lambda(lambda),
-            Expr::Call(call) => self.eval_call(call),
-        }
+        todo!()
     }
 
     fn eval_var(&mut self, var: Var) -> Expr {
-        // TOOD: this can be slow because of cloning
-        if let Some(expr) = self.globals.get(&var).cloned() {
-            self.eval_expr(expr)
-        } else {
-            Expr::Var(var)
-        }
+        todo!()
     }
 
-    fn eval_lambda(&mut self, mut lambda: Lambda) -> Expr {
-        *lambda.body = self.eval_expr(*lambda.body);
-        Expr::Lambda(lambda)
+    fn eval_lambda(&mut self, lambda: Lambda) -> Expr {
+        todo!()
     }
 
-    fn eval_call(&mut self, mut call: Call) -> Expr {
-        *call.func = self.eval_expr(*call.func);
-
-        if let Expr::Lambda(lambda) = *call.func {
-            let expr = Self::replace_var(*lambda.body, lambda.param, *call.arg);
-            self.eval_expr(expr)
-        } else {
-            *call.arg = self.eval_expr(*call.arg);
-            Expr::Call(call)
-        }
-    }
-
-    fn replace_var(expr: Expr, name: Var, value: Expr) -> Expr {
-        match expr {
-            Expr::Var(var) if var == name => value,
-            Expr::Lambda(mut lambda) if lambda.param != name => {
-                *lambda.body = Self::replace_var(*lambda.body, name, value);
-                Expr::Lambda(lambda)
-            }
-            Expr::Call(mut call) => {
-                // TOOD: this can be slow because of cloning
-                *call.func = Self::replace_var(*call.func, name.clone(), value.clone());
-                *call.arg = Self::replace_var(*call.arg, name, value);
-                Expr::Call(call)
-            }
-            _ => expr,
-        }
+    fn eval_call(&mut self, call: Call) -> Expr {
+        todo!()
     }
 }
