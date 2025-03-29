@@ -12,6 +12,6 @@ currently, the beta reduction doesn't work well in when there's substitution of 
 This will be fixed in the next few commits.
 
 ## TODO
- - [ ] add a REPL
+ - [x] add a REPL
  - [ ] use a [`SlotMap`](https://docs.rs/slotmap/latest/slotmap/). This approach fixes the known bug mentioned above, while also allowing shared mutability without the use of `Rc<RefCell<T>>`.
  - [ ] implement the visualization, as shown in [this video](https://www.youtube.com/watch?v=RcVA8Nj6HEo)
