@@ -12,8 +12,7 @@ mod lexer;
 mod parser;
 mod eval;
 
-fn main() {
-    let text = r#"
+const START: &str = r#"
 succ = \n. \f. \x. f (n f x);
 0 = \f. \x. x;
 1 = succ 0;
@@ -27,12 +26,12 @@ succ = \n. \f. \x. f (n f x);
 9 = succ 8;
 10 = succ 9;
 add = \n. \m. \f. \x. n f (m f x);
+add_succ = \n. \m. add (succ n) (succ m);
 mul = \n. \m. \f. n (m f);
 pred = \n. \f. \x. n (\g. \h. h (g f)) (\u. x) (\u. u);
-fac = \n. \f. n (\f. \n. n (f (\f. \x. n f (f x)))) (\x. f) (\x. x);
-fac 2;
 "#;
-    // let text = r#"(\f. \x. f (f (x x x))) (a b) (c d)"#;
+
+fn main() {
     // let mut parser = Parser::new(Lexer::new(text));
     // let prog = parser.parse().unwrap();
     // for stmt in &prog {
@@ -47,7 +46,7 @@ fac 2;
 
 fn repl() {
     let stdin = std::io::stdin();
-    let mut history = String::new();
+    let mut history = START.to_owned();
     let mut line = String::new();
 
     loop {
@@ -89,6 +88,9 @@ fn repl() {
 
         let mut eval = Evaluator::default();
         if let Some(res) = eval.eval_stmts(stmts) {
+            // res contains the result of the expression in the last line, then we should rewind
+            // the line if it's not a declaration
+            history.drain(old_len..);
             println!("=> {}", res);
             println!()
         }

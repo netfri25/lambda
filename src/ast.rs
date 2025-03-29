@@ -45,6 +45,10 @@ impl Expr {
     pub fn is_var(&self) -> bool {
         matches!(self, Self::Var(_))
     }
+
+    pub fn is_lambda(&self) -> bool {
+        matches!(self, Self::Lambda(_))
+    }
 }
 
 impl fmt::Display for Expr {
@@ -73,10 +77,10 @@ impl Call {
 
 impl fmt::Display for Call {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if self.func.is_var() {
-            write!(f, "{} ", self.func)?
-        } else {
+        if self.func.is_lambda() {
             write!(f, "({}) ", self.func)?
+        } else {
+            write!(f, "{} ", self.func)?
         }
 
         if self.arg.is_var() {
