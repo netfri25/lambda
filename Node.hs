@@ -1,11 +1,21 @@
 module Node
-  ( Node(..)
+  ( Stmt(..)
+  , Node(..)
   , reduceOnce
   , reduceWithSteps
   , reduceFull
+  , reduceFullStmt
+  , replace
   ) where
 
 import Data.Data (Data, Typeable)
+
+data Stmt = Node Node | Decl String Node
+  deriving (Eq, Data, Typeable)
+
+instance Show Stmt where
+  show (Node node) = show node
+  show (Decl name node) = unwords [name, "=", show node]
 
 data Node
   = Param String
@@ -39,7 +49,11 @@ reduceWithSteps :: Node -> [Node]
 reduceWithSteps = map snd . takeWhile (uncurry (/=)) . (zip <$> init <*> tail) . iterate reduceOnce
 
 reduceFull :: Node -> Node
-reduceFull = last . reduceWithSteps
+reduceFull node = last (node : reduceWithSteps node)
+
+reduceFullStmt :: Stmt -> Stmt
+reduceFullStmt (Node node) = Node $ reduceFull node
+reduceFullStmt (Decl name node) = Decl name $ reduceFull node
 
 replace :: String -> Node -> Node -> Node
 replace from to (Param name)
