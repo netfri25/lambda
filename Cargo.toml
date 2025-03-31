@@ -1,8 +1,0 @@
-[package]
-name = "lambda"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-slotmap = "1.0.7"
-thiserror = "2.0.12"
