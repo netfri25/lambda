@@ -19,6 +19,8 @@ pub struct Reducer {
     globals: HashMap<Box<str>, NodeKey>,
 }
 
+// TODO: better memory handling (perhaps ref counting for nodes)
+
 impl Reducer {
     // adds a statement, returning NodeKey when stmt is an expr, otherwise None
     pub fn add_stmt(&mut self, stmt: &Stmt) -> Option<NodeKey> {
@@ -112,15 +114,23 @@ impl Reducer {
         }
     }
 
-    // fully reduces a ndoe
+    // fully reduces a node
     pub fn reduce_full(&mut self, mut node_key: NodeKey) -> NodeKey {
+        let clean_every = 100000;
+        let mut iter = 0;
         loop {
             let reduced_node_key = self.reduce_once(node_key);
             if reduced_node_key == node_key {
-                return reduced_node_key;
+                self.cleanup([node_key]);
+                return node_key;
             }
 
-            node_key = reduced_node_key
+            node_key = reduced_node_key;
+            iter += 1;
+            iter %= clean_every;
+            if iter == 0 {
+                self.cleanup([node_key]);
+            }
         }
     }
 

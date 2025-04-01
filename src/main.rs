@@ -66,10 +66,10 @@ fn repl() -> Result<(), Box<dyn Error>> {
             continue;
         };
 
-        reducer.cleanup([]);
         let Some(mut node) = reducer.add_stmt(&stmt) else {
             continue;
         };
+        reducer.cleanup([node]);
 
         if cfg!(debug_assertions) {
             loop {
