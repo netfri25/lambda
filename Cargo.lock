@@ -3,7 +3,7 @@
 version = 4
 
 [[package]]
-name = "lambda-retry"
+name = "lambda"
 version = "0.1.0"
 dependencies = [
  "slotmap",
