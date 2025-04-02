@@ -2,3 +2,6 @@
 name = "lambda"
 version = "0.1.0"
 edition = "2021"
+
+[dependencies]
+rustyline = { version = "15.0.0", default-features = false }

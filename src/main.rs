@@ -1,8 +1,10 @@
 use std::error::Error;
 use std::hint::black_box;
-use std::io::{self, BufRead, Write};
 use std::thread;
 use std::time::{Duration, Instant};
+
+use rustyline::error::ReadlineError;
+use rustyline::DefaultEditor;
 
 use reduce::Reducer;
 
@@ -73,20 +75,26 @@ fn repl() -> Result<(), Box<dyn Error>> {
         reducer.add_stmt(&stmt);
     }
 
-    let mut line = String::new();
+    let mut rl = DefaultEditor::new()?;
+
     loop {
-        print!("> ");
-        io::stdout().flush()?;
-        line.clear();
-        io::stdin().lock().read_line(&mut line)?;
-        if line.is_empty() {
-            break;
+        let line = match rl.readline("> ") {
+            Ok(line) => line,
+            Err(ReadlineError::Interrupted) | Err(ReadlineError::Eof) => break,
+            Err(ReadlineError::WindowResized) => continue,
+            Err(err) => return Err(err.into()),
+        };
+
+        if line.trim().is_empty() {
+            continue
         }
 
         let Some(stmt) = parse::parse(&line) else {
             eprintln!("parsing error");
             continue;
         };
+
+        rl.add_history_entry(&line)?;
 
         let Some(mut node) = reducer.add_stmt(&stmt) else {
             continue;
@@ -98,7 +106,7 @@ fn repl() -> Result<(), Box<dyn Error>> {
                     unreachable!("reducer should always be able to get the expression of a node that hasn't been removed yet.");
                 };
                 println!("==> {}", expr);
-                io::stdin().lock().read_line(&mut String::new()).ok();
+                rl.readline("").ok();
 
                 let next_node = reducer.reduce_once(node.clone());
                 if std::ptr::eq(next_node.as_ref(), node.as_ref()) {
